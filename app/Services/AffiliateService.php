@@ -27,6 +27,23 @@ class AffiliateService
      */
     public function register(Merchant $merchant, string $email, string $name, float $commissionRate): Affiliate
     {
-        // TODO: Complete this method
+        if (User::whereEmail($email)->exists()) {
+            throw new AffiliateCreateException();
+        }
+
+        $merchant->user()->update([
+            'email' => $email,
+        ]);
+
+        $affiliate = Affiliate::create([
+            'user_id' => $merchant->user->id,
+            'merchant_id' => $merchant->id,
+            'commission_rate' => $commissionRate,
+            'discount_code' => $this->apiService->createDiscountCode($merchant)['code'],
+        ]);
+
+        Mail::to($merchant->user)->send(new AffiliateCreated($affiliate));
+
+        return $affiliate;
     }
 }

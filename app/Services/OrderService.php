@@ -23,6 +23,20 @@ class OrderService
      */
     public function processOrder(array $data)
     {
-        // TODO: Complete this method
+        if (Order::whereExternalOrderId($data['order_id'])->exists()) {
+            return;
+        }
+
+        $merchant = Merchant::whereDomain($data['merchant_domain'])->first();
+
+        $this->affiliateService->register(merchant: $merchant, email: $data['customer_email'], name: $data['customer_name'], commissionRate: 0.1);
+
+        Order::create([
+            'merchant_id' => $merchant->id,
+            'affiliate_id' => $merchant->affiliate->id,
+            'subtotal' => $data['subtotal_price'],
+            'commission_owed' => $data['subtotal_price'] * (float) $merchant->affiliate->commission_rate,
+            'external_order_id' => $data['order_id'],
+        ]);
     }
 }
